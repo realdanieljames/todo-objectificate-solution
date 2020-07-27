@@ -17,7 +17,7 @@ Your options are:
 `
 
 const loadTodos = function() {
-  const file = fs.readFileSync('../back-end/todos.json', 'utf8');
+  const file = fs.readFileSync(__dirname + '/../back-end/todos.json', 'utf8');
   const data = JSON.parse(file);
   for (todo of data.todos) {
     todos.push(todo);
@@ -52,7 +52,7 @@ const saveTodos = function() {
   };
 
   const newContents = JSON.stringify(data, null, 2);
-  fs.writeFileSync('../back-end/todos.json', newContents);
+  fs.writeFileSync(__dirname + '/../back-end/todos.json', newContents);
 }
 
 const add = function(text) {
