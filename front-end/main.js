@@ -2,32 +2,46 @@ const readline = require('readline');
 const fs = require('fs');
 
 
-const todos = [];
+let globalTodos = [];
 const interface = readline.createInterface({input: process.stdin, output: process.stdout})
 const menu = `
 Your options are:
 
 1. Add a todo.
 2. Remove a todo.
-3. Mark a todo completed.
-4. Mark a todo uncompleted.
-5. Toggle a todo's priority.
-6. Quit.
+3. Remove all completed todos.
+4. Mark a todo completed.
+5. Mark a todo uncompleted.
+6. Toggle a todo's priority.
+7. Quit.
 
 `
 
+
 const loadTodos = function() {
+  // console.log(__dirname)
+  // -> /Users/[yourusername]/some-other-directories/todo-objectificate/front-end
   const file = fs.readFileSync(__dirname + '/../back-end/todos.json', 'utf8');
   const data = JSON.parse(file);
-  for (todo of data.todos) {
-    todos.push(todo);
-  }
+  globalTodos = data.todos;
+
+  // or, the manual way:
+  // for (todo of data.todos) {
+  //   globalTodos.push(todo);
+  // }
+
+  // or, replacing all the above, if you wanna feel clever with unreadable code:
+  // globalTodos = JSON.parse(fs.readFileSync(__dirname + '/../back-end/todos.json', 'utf8')).todos
 }
+
 
 const displayTodos = function(shouldPrintNumber) {
   console.log('\nHere are your current todos:\n')
-  for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i];
+  for (let i = 0; i < globalTodos.length; i++) {
+    const todo = globalTodos[i];
+    const text = todo.text;
+    const isComplete = todo.isComplete;
+    const priority = todo.priority;
     const num = i + 1;
     let listSymbol = '*';
     let mark = '✖';
@@ -35,11 +49,11 @@ const displayTodos = function(shouldPrintNumber) {
       listSymbol = num + '.';
     }
 
-    if (todo.complete) {
+    if (isComplete) {
       mark = '✅';
     }
 
-    todoLine = listSymbol + ' ' + todo.text + ' - priority: ' + todo.priority + ' - ' + mark;
+    todoLine = listSymbol + ' ' + text + ' - priority: ' + priority + ' - ' + mark;
     // or, using interpolation:
     todoLine = `${listSymbol} ${todo.text} - priority: ${todo.priority} - ${mark}`
     console.log(todoLine);
@@ -47,38 +61,45 @@ const displayTodos = function(shouldPrintNumber) {
 }
 
 const saveTodos = function() {
+  // make a data object with our updated todos array as its todos property
   const data = {
-    todos: todos,
+    todos: globalTodos,
   };
 
+  // console.log('data:', data)
+
+  // make that object into a JSON string
   const newContents = JSON.stringify(data, null, 2);
+  // console.log('newcontents: ', newContents)
+
+  // write that JSON string into the file
   fs.writeFileSync(__dirname + '/../back-end/todos.json', newContents);
 }
 
-const add = function(text) {
+const add = function(answer) {
   const todo = {
-    text: text,
+    text: answer,
     priority: 2,
-    complete: false,
+    isComplete: false,
   }
 
-  todos.push(todo);
+  globalTodos.push(todo);
   saveTodos();
   displayTodos(false);
   interface.close();
 }
 
 const remove = function(num) {
-  todos.splice(num - 1, 1);
+  globalTodos.splice(num - 1, 1);
   saveTodos();
   displayTodos(false);
   interface.close();
 }
 
 const complete = function(num) {
-  for (let i = 0; i < todos.length; i++) {
+  for (let i = 0; i < globalTodos.length; i++) {
     if (i + 1 === Number(num)) {
-      todos[i].complete = true;
+      globalTodos[i].isComplete = true;
     }
   }
 
@@ -88,9 +109,9 @@ const complete = function(num) {
 }
 
 const uncomplete = function(num) {
-  for (let i = 0; i < todos.length; i++) {
+  for (let i = 0; i < globalTodos.length; i++) {
     if (i + 1 === Number(num)) {
-      todos[i].complete = false;
+      globalTodos[i].isComplete = false;
     }
   }
 
@@ -100,8 +121,8 @@ const uncomplete = function(num) {
 }
 
 const togglePriority = function(num) {
-  for (let i = 0; i < todos.length; i++) {
-    const todo = todos[i];
+  for (let i = 0; i < globalTodos.length; i++) {
+    const todo = globalTodos[i];
     if (i + 1 === Number(num)) {
       if (todo.priority === 1) {
         todo.priority = 2;
@@ -116,6 +137,20 @@ const togglePriority = function(num) {
   interface.close();
 }
 
+const removeCompletedTodos = function() {
+  const completesFilteredOut = [];
+  for (const todo of globalTodos) {
+    if (todo.isComplete === false) {
+      completesFilteredOut.push(todo);
+    }
+  }
+
+  globalTodos = completesFilteredOut;
+  saveTodos();
+  displayTodos(false);
+  interface.close();
+}
+
 const handleMenu = function(cmd) {
   if (cmd === '1') {
     // Add a todo.
@@ -125,14 +160,18 @@ const handleMenu = function(cmd) {
     displayTodos(true);
     interface.question('\nPlease pick a todo to remove: ', remove)
   } else if (cmd === '3') {
-    // Mark a todo complete.
+    // Remove all completed todos.
+    removeCompletedTodos();
     displayTodos(true);
-    interface.question('\nPlease pick a todo to mark complete: ', complete)
   } else if (cmd === '4') {
     // Mark a todo complete.
     displayTodos(true);
-    interface.question('\nPlease pick a todo to mark uncomplete: ', uncomplete)
+    interface.question('\nPlease pick a todo to mark complete: ', complete)
   } else if (cmd === '5') {
+    // Mark a todo complete.
+    displayTodos(true);
+    interface.question('\nPlease pick a todo to mark uncomplete: ', uncomplete)
+  } else if (cmd === '6') {
     // Toggle a todo's priority.
     displayTodos(true);
     interface.question('\nPlease pick a todo to toggle its priority: ', togglePriority)
